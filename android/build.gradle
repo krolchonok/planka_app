@@ -13,6 +13,14 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
+subprojects {
+    tasks.withType(org.gradle.api.tasks.compile.JavaCompile).configureEach {
+        if (!options.compilerArgs.contains("-Xlint:-options")) {
+            options.compilerArgs += ["-Xlint:-options"]
+        }
+    }
+}
+
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }

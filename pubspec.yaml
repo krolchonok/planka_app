@@ -38,7 +38,7 @@ dependencies:
   http: ^1.2.2
   provider: ^6.1.2
   floating_action_bubble: ^1.1.4
-  intl: ^0.19.0
+  intl: ^0.20.2
   top_snackbar_flutter: ^3.1.0
   html: ^0.15.4
   flutter_widget_from_html: ^0.14.11
