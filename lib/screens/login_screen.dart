@@ -1,6 +1,7 @@
 import 'package:country_flags/country_flags.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 
@@ -114,6 +115,7 @@ class _LoginScreenState extends State<LoginScreen> {
           _domainController.text,
           context,
         );
+        TextInput.finishAutofillContext();
         Navigator.of(context).pushReplacementNamed('/projects');
       } catch (error) {
         debugPrint(error.toString());
@@ -146,106 +148,110 @@ class _LoginScreenState extends State<LoginScreen> {
       appBar: AppBar(title: Text('login'.tr())),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _usernameController,
-              decoration: InputDecoration(labelText: 'login_fields.0'.tr()),
-              focusNode: _usernameFocusNode,
-              textInputAction: TextInputAction.next,
-              onSubmitted: (_) => _login(), // Submit when Enter is pressed
-            ),
-            TextField(
-              controller: _passwordController,
-              decoration: InputDecoration(labelText: 'login_fields.1'.tr()),
-              obscureText: true,
-              focusNode: _passwordFocusNode,
-              textInputAction: TextInputAction.next,
-              onSubmitted: (_) => _login(),
-            ),
-            TextField(
-              controller: _domainController,
-              decoration: InputDecoration(labelText: 'login_fields.2'.tr()),
-              focusNode: _domainFocusNode,
-              textInputAction: TextInputAction.done,
-              onSubmitted: (result) => _login(),
-            ),
-
-            DropdownButton<String>(
-              value: _selectedProtocol,
-              isExpanded: true,
-              icon: const Icon(Icons.keyboard_arrow_down),
-              iconSize: 24,
-              elevation: 16,
-              style: const TextStyle(color: Colors.black),
-              underline: Container(
-                height: 2,
-                color: Colors.indigo,
+        child: AutofillGroup(
+          child: Column(
+            children: [
+              TextField(
+                controller: _usernameController,
+                decoration: InputDecoration(labelText: 'login_fields.0'.tr()),
+                focusNode: _usernameFocusNode,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.username],
+                onSubmitted: (_) => _login(), // Submit when Enter is pressed
               ),
-              onChanged: (String? newProtocol) {
-                setState(() {
-                  _selectedProtocol = newProtocol!;
-                });
-              },
-              items: _protocolOptions.map<DropdownMenuItem<String>>((protocol) {
-                return DropdownMenuItem<String>(
-                  value: protocol,
-                  child: Text(protocol.toUpperCase()),
-                );
-              }).toList(),
-            ),
-
-            // Language dropdown
-            DropdownButton<String>(
-              value: _selectedLanguage,
-              isExpanded: true,
-              icon: const Icon(Icons.keyboard_arrow_down),
-              iconSize: 24,
-              elevation: 16,
-              style: const TextStyle(color: Colors.black),
-              underline: Container(
-                height: 2,
-                color: Colors.indigo,
+              TextField(
+                controller: _passwordController,
+                decoration: InputDecoration(labelText: 'login_fields.1'.tr()),
+                obscureText: true,
+                focusNode: _passwordFocusNode,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.password],
+                onSubmitted: (_) => _login(),
               ),
-              onChanged: (String? newValue) {
-                setState(() {
-                  _selectedLanguage = newValue!;
+              TextField(
+                controller: _domainController,
+                decoration: InputDecoration(labelText: 'login_fields.2'.tr()),
+                focusNode: _domainFocusNode,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (result) => _login(),
+              ),
 
-                  // Find the selected language's locale codes
-                  final selectedLanguageData = _languages.firstWhere(
-                        (lang) => lang['name'] == _selectedLanguage,
+              DropdownButton<String>(
+                value: _selectedProtocol,
+                isExpanded: true,
+                icon: const Icon(Icons.keyboard_arrow_down),
+                iconSize: 24,
+                elevation: 16,
+                style: const TextStyle(color: Colors.black),
+                underline: Container(
+                  height: 2,
+                  color: Colors.indigo,
+                ),
+                onChanged: (String? newProtocol) {
+                  setState(() {
+                    _selectedProtocol = newProtocol!;
+                  });
+                },
+                items: _protocolOptions.map<DropdownMenuItem<String>>((protocol) {
+                  return DropdownMenuItem<String>(
+                    value: protocol,
+                    child: Text(protocol.toUpperCase()),
                   );
+                }).toList(),
+              ),
 
-                  // Set the locale using the found language and region codes
-                  context.setLocale(Locale(selectedLanguageData['code1'], selectedLanguageData['code2']));
-                });
-              },
-              items: _languages.map<DropdownMenuItem<String>>((language) {
-                return DropdownMenuItem<String>(
-                  value: language['name'],
-                  child: Row(
-                    children: [
-                      CountryFlag.fromCountryCode(
-                        (language['flag'] ?? language['code2']).toString(),
-                        // shape: const Circle(),
-                        shape: const RoundedRectangle(6),
-                        height: 20,
-                        width: 30,
-                      ),
-                      const SizedBox(width: 10),
-                      Text(language['name']),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
+              // Language dropdown
+              DropdownButton<String>(
+                value: _selectedLanguage,
+                isExpanded: true,
+                icon: const Icon(Icons.keyboard_arrow_down),
+                iconSize: 24,
+                elevation: 16,
+                style: const TextStyle(color: Colors.black),
+                underline: Container(
+                  height: 2,
+                  color: Colors.indigo,
+                ),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _selectedLanguage = newValue!;
 
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: _login,
-              child: Text('login'.tr()),
-            ),
-          ],
+                    // Find the selected language's locale codes
+                    final selectedLanguageData = _languages.firstWhere(
+                          (lang) => lang['name'] == _selectedLanguage,
+                    );
+
+                    // Set the locale using the found language and region codes
+                    context.setLocale(Locale(selectedLanguageData['code1'], selectedLanguageData['code2']));
+                  });
+                },
+                items: _languages.map<DropdownMenuItem<String>>((language) {
+                  return DropdownMenuItem<String>(
+                    value: language['name'],
+                    child: Row(
+                      children: [
+                        CountryFlag.fromCountryCode(
+                          (language['flag'] ?? language['code2']).toString(),
+                          // shape: const Circle(),
+                          shape: const RoundedRectangle(6),
+                          height: 20,
+                          width: 30,
+                        ),
+                        const SizedBox(width: 10),
+                        Text(language['name']),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: _login,
+                child: Text('login'.tr()),
+              ),
+            ],
+          ),
         ),
       ),
     );
