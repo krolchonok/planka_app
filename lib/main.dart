@@ -29,13 +29,13 @@ Future<void> main() async {
           Locale('en', 'US'),
           Locale('es', 'ES'),
           Locale('fr', 'FR'),
+          Locale('ru', 'RU'),
           Locale('tr', 'TR'),
           Locale('it', 'IT'),
         ],
         path: 'assets/translations',
-        fallbackLocale: const Locale('de', 'DE'),
+        fallbackLocale: const Locale('en', 'US'),
         saveLocale: true,
-        startLocale:  const Locale('de', 'DE'),
         child: const MyApp()
     ),
   );

@@ -55,6 +55,12 @@ class _LoginScreenState extends State<LoginScreen> {
       'code1': 'es',
       'code2': 'ES',
     },
+    {
+      'name': 'Русский',
+      'flag': 'ru',
+      'code1': 'ru',
+      'code2': 'RU',
+    },
   ];
 
   String _selectedProtocol = 'https';
@@ -133,6 +139,7 @@ class _LoginScreenState extends State<LoginScreen> {
     ///Init SelectedLanguage with current real language
     _selectedLanguage = _languages.firstWhere(
           (lang) => lang['code1'] == context.locale.languageCode && lang['code2'] == context.locale.countryCode,
+      orElse: () => _languages.first,
     )['name'] as String;
 
     return Scaffold(
@@ -218,8 +225,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   value: language['name'],
                   child: Row(
                     children: [
-                      CountryFlag.fromLanguageCode(
-                        language['code1'],
+                      CountryFlag.fromCountryCode(
+                        (language['flag'] ?? language['code2']).toString(),
                         // shape: const Circle(),
                         shape: const RoundedRectangle(6),
                         height: 20,
