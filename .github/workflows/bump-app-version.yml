@@ -1,0 +1,85 @@
+name: Bump App Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "App version (x.y.z)"
+        required: true
+      build_number:
+        description: "Optional build number (integer). Leave empty to keep current +build."
+        required: false
+        default: ""
+      target_branch:
+        description: "Branch to update"
+        required: true
+        default: "main"
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Validate input format
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+          BUILD_NUMBER: ${{ github.event.inputs.build_number }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid version format: $VERSION (expected x.y.z)"
+            exit 1
+          fi
+          if [ -n "${BUILD_NUMBER}" ] && ! [[ "$BUILD_NUMBER" =~ ^[0-9]+$ ]]; then
+            echo "Invalid build number: $BUILD_NUMBER (expected integer)"
+            exit 1
+          fi
+
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.target_branch }}
+
+      - name: Update pubspec.yaml version
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+          BUILD_NUMBER: ${{ github.event.inputs.build_number }}
+        run: |
+          set -euo pipefail
+          if [ -n "${BUILD_NUMBER}" ]; then
+            NEW_VERSION="${VERSION}+${BUILD_NUMBER}"
+            perl -0777 -i -pe "s/^version:\\s*.*/version: ${NEW_VERSION}/m" pubspec.yaml
+          else
+            CURRENT_BUILD="$(grep -E '^version:' pubspec.yaml | sed -E 's/^[^+]*\+([0-9]+).*$/\1/' || true)"
+            if grep -Eq '^version:.*\+[0-9]+' pubspec.yaml; then
+              NEW_VERSION="${VERSION}+${CURRENT_BUILD}"
+            else
+              NEW_VERSION="${VERSION}"
+            fi
+            perl -0777 -i -pe "s/^version:\\s*.*/version: ${NEW_VERSION}/m" pubspec.yaml
+          fi
+          echo "Updated to: $(grep -E '^version:' pubspec.yaml)"
+
+      - name: Commit and push
+        env:
+          TARGET_BRANCH: ${{ github.event.inputs.target_branch }}
+          VERSION: ${{ github.event.inputs.version }}
+          BUILD_NUMBER: ${{ github.event.inputs.build_number }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pubspec.yaml
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          if [ -n "${BUILD_NUMBER}" ]; then
+            MSG="chore: bump app version to ${VERSION}+${BUILD_NUMBER}"
+          else
+            MSG="chore: bump app version to ${VERSION}"
+          fi
+          git commit -m "$MSG"
+          git push origin "HEAD:${TARGET_BRANCH}"
