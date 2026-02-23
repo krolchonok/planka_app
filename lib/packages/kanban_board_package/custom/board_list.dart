@@ -232,7 +232,7 @@ class _BoardListState extends ConsumerState<BoardList> {
           },
           child: Container(
           padding: const EdgeInsets.only(left: 15, right: 15),
-          margin: const EdgeInsets.only(right: 30, top: 20, bottom: 15),
+          margin: const EdgeInsets.only(right: 15, top: 20, bottom: 15),
           width: prov.board.lists[widget.index].width!,
           decoration: BoxDecoration(
             color: colorScheme.surfaceContainerLow,

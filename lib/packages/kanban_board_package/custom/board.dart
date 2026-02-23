@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../Provider/provider_list.dart';
@@ -168,6 +171,73 @@ class Board extends ConsumerStatefulWidget {
 
 class _BoardState extends ConsumerState<Board> {
   int _lastAutoListIndex = -1;
+  bool _isSnapping = false;
+  Timer? _snapDebounce;
+
+  void _scheduleSnap() {
+    if (_isSnapping) return;
+    _snapDebounce?.cancel();
+    _snapDebounce = Timer(const Duration(milliseconds: 140), () {
+      if (mounted) {
+        _snapToClosestList();
+      }
+    });
+  }
+
+  Future<void> _snapToClosestList() async {
+    if (_isSnapping) return;
+    final boardProv = ref.read(ProviderList.boardProvider);
+    if (!boardProv.board.controller.hasClients || boardProv.board.lists.isEmpty) {
+      return;
+    }
+
+    final controller = boardProv.board.controller;
+    final viewport = controller.position.viewportDimension;
+    if (viewport <= 0) return;
+    final viewportCenter = controller.offset + (viewport / 2);
+    final boardBox = context.findRenderObject() as RenderBox?;
+    if (boardBox == null) return;
+    final boardOrigin = boardBox.localToGlobal(Offset.zero).dx;
+
+    int? closestIndex;
+    double? closestCenter;
+    double minDistance = double.infinity;
+
+    for (int i = 0; i < boardProv.board.lists.length; i++) {
+      final listContext = boardProv.board.lists[i].context;
+      final listRender = listContext?.findRenderObject() as RenderBox?;
+      if (listRender == null || !listRender.hasSize) continue;
+
+      final listLeftInViewport =
+          listRender.localToGlobal(Offset.zero).dx - boardOrigin;
+      final listCenterInContent =
+          controller.offset + listLeftInViewport + (listRender.size.width / 2);
+      final distance = (listCenterInContent - viewportCenter).abs();
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestIndex = i;
+        closestCenter = listCenterInContent;
+      }
+    }
+    if (closestIndex == null || closestCenter == null) return;
+
+    final targetOffset = (closestCenter - (viewport / 2))
+        .clamp(0.0, controller.position.maxScrollExtent)
+        .toDouble();
+
+    if ((controller.offset - targetOffset).abs() < 1) return;
+
+    _isSnapping = true;
+    try {
+      await controller.animateTo(
+        targetOffset,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+      );
+    } finally {
+      _isSnapping = false;
+    }
+  }
 
   @override
   void initState() {
@@ -217,6 +287,10 @@ class _BoardState extends ConsumerState<Board> {
 
     // Board Scroll Listener
     boardProv.board.controller.addListener(() {
+      if (!boardProv.board.isElementDragged && !boardProv.board.isListDragged) {
+        _scheduleSnap();
+      }
+
       if (boardProv.scrolling) {
         if (boardProv.scrollingLeft && boardProv.board.isListDragged) {
           for (var element in boardProv.board.lists) {
@@ -264,6 +338,12 @@ class _BoardState extends ConsumerState<Board> {
   }
 
   @override
+  void dispose() {
+    _snapDebounce?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     var boardProv = ref.read(ProviderList.boardProvider);
     var boardListProv = ref.read(ProviderList.boardListProvider);
@@ -287,6 +367,8 @@ class _BoardState extends ConsumerState<Board> {
           }
           boardProv.setcanDrag(value: false, listIndex: 0, itemIndex: 0);
           setState(() {});
+        } else {
+          _scheduleSnap();
         }
       },
       onPointerMove: (event) {
@@ -336,106 +418,118 @@ class _BoardState extends ConsumerState<Board> {
                               PointerDeviceKind.touch,
                             },
                           ),
-                          child: SingleChildScrollView(
-                            controller: boardProv.board.controller,
-                            physics: const PageScrollPhysics(),
-                            scrollDirection: Axis.horizontal,
-                            child: Transform(
+                          child: NotificationListener<ScrollNotification>(
+                            onNotification: (notification) {
+                              final isHorizontal =
+                                  notification.metrics.axis == Axis.horizontal;
+                              if (!isHorizontal || notification.depth != 0) {
+                                return false;
+                              }
+                              if (notification is ScrollEndNotification) {
+                                _snapToClosestList();
+                              }
+                              return false;
+                            },
+                            child: SingleChildScrollView(
+                              controller: boardProv.board.controller,
+                              physics: const ClampingScrollPhysics(),
+                              scrollDirection: Axis.horizontal,
+                              child: Transform(
                               alignment: Alignment.topLeft,
                               transform: Matrix4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  const SizedBox(width: 15),
                                   // Render all lists if any exist
                                   ...boardProv.board.lists.map((e) {
-                                    return Container(
-                                      margin: const EdgeInsets.only(left: 15),
-                                      child: BoardList(index: boardProv.board.lists.indexOf(e)),
-                                    );
+                                    return BoardList(index: boardProv.board.lists.indexOf(e));
                                   }),
 
-                                  // Always show the "Add List" widget after the lists (or alone if there are no lists)
-                                  boardListProv.newList ?
-                                  Container(
-                                    margin: const EdgeInsets.only(top: 20, right: 30),
-                                    padding: const EdgeInsets.only(bottom: 20),
-                                    width: MediaQuery.of(context).size.width * 0.9,
-                                    decoration: BoxDecoration(
-                                      color: colorScheme.surfaceContainerHigh,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: colorScheme.outlineVariant),
-                                    ),
-                                    child: Wrap(
-                                      children: [
-                                        SizedBox(
-                                          height: 50,
-                                          width: 300,
-                                          child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              IconButton(
-                                                onPressed: () {
-                                                  setState(() {
-                                                    boardListProv.newList = false;
-                                                    boardProv.board.newCardTextController.clear();
-                                                  });
-                                                },
-                                                icon: const Icon(Icons.close),
-                                              ),
-                                              IconButton(
-                                                onPressed: () {
-                                                  setState(() {
-                                                    boardListProv.newList = false;
-                                                    // Create New List Here
-                                                    if (widget.onListCreate != null) {
-                                                      widget.onListCreate!(boardProv.board.newCardTextController.text);
-                                                    }
-                                                    boardProv.board.newCardTextController.clear();
-                                                  });
-                                                },
-                                                icon: const Icon(Icons.done),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        Container(
-                                          width: 300,
-                                          color: colorScheme.surface,
-                                          margin: const EdgeInsets.only(top: 20, right: 10, left: 10),
-                                          child: const TField(), // Replace TField with your text field implementation
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                      : GestureDetector(
-                                    onTap: () {
-                                      if (boardProv.board.newCardFocused == true) {
-                                        ref.read(ProviderList.cardProvider).saveNewCard();
-                                      }
-                                      boardListProv.newList = true;
-                                      setState(() {});
-                                    },
-                                    child: Container(
-                                      height: 50,
+                                    // Always show the "Add List" widget after the lists (or alone if there are no lists)
+                                    boardListProv.newList ?
+                                    Container(
+                                      margin: const EdgeInsets.only(top: 20),
+                                      padding: const EdgeInsets.only(bottom: 20),
                                       width: MediaQuery.of(context).size.width * 0.9,
-                                      margin: const EdgeInsets.only(top: 20, right: 20),
                                       decoration: BoxDecoration(
-                                        color: colorScheme.primaryContainer,
-                                        borderRadius: BorderRadius.circular(10),
+                                        color: colorScheme.surfaceContainerHigh,
+                                        borderRadius: BorderRadius.circular(12),
                                         border: Border.all(color: colorScheme.outlineVariant),
                                       ),
-                                      child: Center(
-                                        child: Text(
-                                          'create_list'.tr(),
-                                          style: (widget.textStyle ?? Theme.of(context).textTheme.titleMedium)
-                                              ?.copyWith(color: colorScheme.onPrimaryContainer),
+                                      child: Wrap(
+                                        children: [
+                                          SizedBox(
+                                            height: 50,
+                                            width: 300,
+                                            child: Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                              children: [
+                                                IconButton(
+                                                  onPressed: () {
+                                                    setState(() {
+                                                      boardListProv.newList = false;
+                                                      boardProv.board.newCardTextController.clear();
+                                                    });
+                                                  },
+                                                  icon: const Icon(Icons.close),
+                                                ),
+                                                IconButton(
+                                                  onPressed: () {
+                                                    setState(() {
+                                                      boardListProv.newList = false;
+                                                      // Create New List Here
+                                                      if (widget.onListCreate != null) {
+                                                        widget.onListCreate!(boardProv.board.newCardTextController.text);
+                                                      }
+                                                      boardProv.board.newCardTextController.clear();
+                                                    });
+                                                  },
+                                                  icon: const Icon(Icons.done),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          Container(
+                                            width: 300,
+                                            color: colorScheme.surface,
+                                            margin: const EdgeInsets.only(top: 20, right: 10, left: 10),
+                                            child: const TField(), // Replace TField with your text field implementation
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                        : GestureDetector(
+                                      onTap: () {
+                                        if (boardProv.board.newCardFocused == true) {
+                                          ref.read(ProviderList.cardProvider).saveNewCard();
+                                        }
+                                        boardListProv.newList = true;
+                                        setState(() {});
+                                      },
+                                      child: Container(
+                                        height: 50,
+                                        width: MediaQuery.of(context).size.width * 0.9,
+                                        margin: const EdgeInsets.only(top: 20),
+                                        decoration: BoxDecoration(
+                                          color: colorScheme.primaryContainer,
+                                          borderRadius: BorderRadius.circular(10),
+                                          border: Border.all(color: colorScheme.outlineVariant),
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            'create_list'.tr(),
+                                            style: (widget.textStyle ?? Theme.of(context).textTheme.titleMedium)
+                                                ?.copyWith(color: colorScheme.onPrimaryContainer),
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
+                                  const SizedBox(width: 15),
                                 ],
                               ),
                             ),
+                          ),
                           ),
                         ),
                       ),
