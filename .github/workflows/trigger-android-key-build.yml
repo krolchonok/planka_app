@@ -1,0 +1,27 @@
+name: Trigger Android-Key Build
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch build event to android-key
+        env:
+          FULLTOKEN: ${{ secrets.FULLTOKEN }}
+          TARGET_REPO: ${{ github.repository }}
+          TARGET_REF: ${{ github.ref_name }}
+          TARGET_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          test -n "${FULLTOKEN:-}" || (echo "Missing secret: FULLTOKEN" && exit 1)
+
+          curl -sS -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: token ${FULLTOKEN}" \
+            https://api.github.com/repos/krolchonok/android-key/dispatches \
+            -d "{\"event_type\":\"planka_commit\",\"client_payload\":{\"target_repo\":\"${TARGET_REPO}\",\"target_ref\":\"${TARGET_REF}\",\"target_sha\":\"${TARGET_SHA}\"}}"
