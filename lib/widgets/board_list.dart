@@ -30,115 +30,110 @@ class BoardListState extends State<BoardList> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-
-    if (widget.boards.isNotEmpty) {
-      return Padding(
-        padding: const EdgeInsets.only(left: 10, right: 10, top: 10),
-        child: GridView.builder(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 10.0,
-            mainAxisSpacing: 10.0,
-            childAspectRatio: 2,
-          ),
-          itemCount: widget.boards.length + 1,
-          itemBuilder: (ctx, index) {
-            if (index == widget.boards.length) {
-              return GestureDetector(
-                onTap: () {
-                  _showCreateBoardDialog(context);
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: colorScheme.primary,
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  child: Center(
-                    child: Icon(
-                      Icons.add,
-                      size: 50,
-                      color: colorScheme.onPrimary,
-                    ),
-                  ),
-                ),
-              );
-            } else {
-              final board = widget.boards[index];
-              final users = widget.usersPerBoard[board.id] ?? []; // Get users for this specific board
-
-              return GestureDetector(
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => ListScreen(
-                        currentProject: widget.currentProject,
-                        currentBoard: board,
-                      ),
-                    ),
-                  );
-                },
-                onLongPress: () {
-                  _showEditBoardDialog(context, board);
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: colorScheme.primary,
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          board.name,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyLarge
-                              ?.copyWith(color: colorScheme.onPrimary),
-                        ),
-                        const SizedBox(height: 10),
-                        // Users section with overflow handling
-                        Expanded(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              Wrap(
-                                spacing: 5,
-                                runSpacing: 5,
-                                children: users.take(3).map((user) {
-                                  return CircleAvatar(
-                                    backgroundImage: user.avatarUrl != null
-                                        ? NetworkImage(user.avatarUrl!)
-                                        : null,
-                                    radius: 15,
-                                    child: user.avatarUrl == null
-                                        ? Text(user.name[0])
-                                        : null,
-                                  );
-                                }).toList(),
-                              ),
-                              if (users.length > 3)
-                                Text(
-                                  '  ...',
-                                  style: TextStyle(color: colorScheme.onPrimary),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }
-          },
+    return Padding(
+      padding: const EdgeInsets.only(left: 10, right: 10, top: 10),
+      child: GridView.builder(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 10.0,
+          mainAxisSpacing: 10.0,
+          childAspectRatio: 2,
         ),
-      );
-    }
+        itemCount: widget.boards.length + 1,
+        itemBuilder: (ctx, index) {
+          if (index == widget.boards.length) {
+            return GestureDetector(
+              onTap: () {
+                _showCreateBoardDialog(context);
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: colorScheme.primary,
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                child: Center(
+                  child: Icon(
+                    Icons.add,
+                    size: 50,
+                    color: colorScheme.onPrimary,
+                  ),
+                ),
+              ),
+            );
+          } else {
+            final board = widget.boards[index];
+            final users = widget.usersPerBoard[board.id] ?? []; // Get users for this specific board
 
-    return Center(child: Text('no_boards'.tr()));
+            return GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => ListScreen(
+                      currentProject: widget.currentProject,
+                      currentBoard: board,
+                    ),
+                  ),
+                );
+              },
+              onLongPress: () {
+                _showEditBoardDialog(context, board);
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: colorScheme.primary,
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        board.name,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyLarge
+                            ?.copyWith(color: colorScheme.onPrimary),
+                      ),
+                      const SizedBox(height: 10),
+                      // Users section with overflow handling
+                      Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            Wrap(
+                              spacing: 5,
+                              runSpacing: 5,
+                              children: users.take(3).map((user) {
+                                return CircleAvatar(
+                                  backgroundImage: user.avatarUrl != null
+                                      ? NetworkImage(user.avatarUrl!)
+                                      : null,
+                                  radius: 15,
+                                  child: user.avatarUrl == null
+                                      ? Text(user.name[0])
+                                      : null,
+                                );
+                              }).toList(),
+                            ),
+                            if (users.length > 3)
+                              Text(
+                                '  ...',
+                                style: TextStyle(color: colorScheme.onPrimary),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
+        },
+      ),
+    );
   }
 
   void _showEditBoardDialog(BuildContext context, PlankaBoard board) {
@@ -356,12 +351,12 @@ class BoardListState extends State<BoardList> {
                         }
 
                         // Create new board and add members logic
-                        Provider.of<BoardProvider>(ctx, listen: false).createBoard(
-                          newBoardName: boardNameController.text,
-                          projectId: widget.currentProject.id,
-                          context: context,
-                          newPos: (widget.boards.last.position + 1000).toString(),
-                        ).then((_) {
+                      Provider.of<BoardProvider>(ctx, listen: false).createBoard(
+                        newBoardName: boardNameController.text,
+                        projectId: widget.currentProject.id,
+                        context: context,
+                        newPos: ((widget.boards.isNotEmpty ? widget.boards.last.position : 0) + 1000).toString(),
+                      ).then((_) {
                           // Call the onRefresh callback if it exists
                           if (widget.onRefresh != null) {
                             widget.onRefresh!();
@@ -432,7 +427,7 @@ class BoardListState extends State<BoardList> {
                         newBoardName: boardNameController.text,
                         projectId: widget.currentProject.id,
                         context: context,
-                        newPos: (widget.boards.last.position + 1000).toString(),
+                        newPos: ((widget.boards.isNotEmpty ? widget.boards.last.position : 0) + 1000).toString(),
                       ).then((boardId) {  // 'boardId' aus der Antwort der Funktion
                         /// Für jeden Benutzer in der Liste `selectedUserIds` die Funktion `addBoardMember` aufrufen
                         final selectedUserIds = selectedUsers.map((user) => user.id).toList();

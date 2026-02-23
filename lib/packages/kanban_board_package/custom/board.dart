@@ -173,6 +173,7 @@ class _BoardState extends ConsumerState<Board> {
   int _lastAutoListIndex = -1;
   bool _isSnapping = false;
   Timer? _snapDebounce;
+  final GlobalKey _createListKey = GlobalKey();
 
   void _scheduleSnap() {
     if (_isSnapping) return;
@@ -199,7 +200,6 @@ class _BoardState extends ConsumerState<Board> {
     if (boardBox == null) return;
     final boardOrigin = boardBox.localToGlobal(Offset.zero).dx;
 
-    int? closestIndex;
     double? closestCenter;
     double minDistance = double.infinity;
 
@@ -215,11 +215,29 @@ class _BoardState extends ConsumerState<Board> {
       final distance = (listCenterInContent - viewportCenter).abs();
       if (distance < minDistance) {
         minDistance = distance;
-        closestIndex = i;
         closestCenter = listCenterInContent;
       }
     }
-    if (closestIndex == null || closestCenter == null) return;
+
+    // Include "Create list" tile in snap candidates to prevent bouncing back
+    // when user scrolls to the end of board.
+    final createListRender =
+        _createListKey.currentContext?.findRenderObject() as RenderBox?;
+    if (createListRender != null && createListRender.hasSize) {
+      final createListLeftInViewport =
+          createListRender.localToGlobal(Offset.zero).dx - boardOrigin;
+      final createListCenterInContent = controller.offset +
+          createListLeftInViewport +
+          (createListRender.size.width / 2);
+      final createListDistance =
+          (createListCenterInContent - viewportCenter).abs();
+      if (createListDistance < minDistance) {
+        minDistance = createListDistance;
+        closestCenter = createListCenterInContent;
+      }
+    }
+
+    if (closestCenter == null) return;
 
     final targetOffset = (closestCenter - (viewport / 2))
         .clamp(0.0, controller.position.maxScrollExtent)
@@ -449,6 +467,7 @@ class _BoardState extends ConsumerState<Board> {
                                     // Always show the "Add List" widget after the lists (or alone if there are no lists)
                                     boardListProv.newList ?
                                     Container(
+                                      key: _createListKey,
                                       margin: const EdgeInsets.only(top: 20),
                                       padding: const EdgeInsets.only(bottom: 20),
                                       width: MediaQuery.of(context).size.width * 0.9,
@@ -508,6 +527,7 @@ class _BoardState extends ConsumerState<Board> {
                                         setState(() {});
                                       },
                                       child: Container(
+                                        key: _createListKey,
                                         height: 50,
                                         width: MediaQuery.of(context).size.width * 0.9,
                                         margin: const EdgeInsets.only(top: 20),
