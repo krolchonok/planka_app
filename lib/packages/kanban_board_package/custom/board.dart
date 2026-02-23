@@ -167,6 +167,8 @@ class Board extends ConsumerStatefulWidget {
 }
 
 class _BoardState extends ConsumerState<Board> {
+  int _lastAutoListIndex = -1;
+
   @override
   void initState() {
     var boardProv = ref.read(ProviderList.boardProvider);
@@ -236,6 +238,24 @@ class _BoardState extends ConsumerState<Board> {
             element.y = of.dy - widget.displacementY + 24;
           }
           boardListProv.moveListRight();
+        }
+      }
+
+      // Auto-detect the currently visible list by board horizontal offset
+      // and notify host screen, so actions can target the active list.
+      if (widget.onListTap != null && boardProv.board.lists.isNotEmpty) {
+        final firstWidth = boardProv.board.lists.first.width ??
+            (MediaQuery.of(context).size.width * 0.9);
+        final itemExtent = firstWidth + 45; // list left+right spacing in this layout
+        if (itemExtent > 0) {
+          final rawIndex = (boardProv.board.controller.offset / itemExtent).round();
+          final visibleIndex = rawIndex
+              .clamp(0, boardProv.board.lists.length - 1)
+              .toInt();
+          if (visibleIndex != _lastAutoListIndex) {
+            _lastAutoListIndex = visibleIndex;
+            widget.onListTap!(visibleIndex);
+          }
         }
       }
     });

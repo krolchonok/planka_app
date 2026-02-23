@@ -829,6 +829,7 @@ class _CardListState extends State<CardList> with SingleTickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     final boardProvider = Provider.of<BoardProvider>(context, listen: false);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       floatingActionButton: FloatingActionBubble(
@@ -853,10 +854,10 @@ class _CardListState extends State<CardList> with SingleTickerProviderStateMixin
           // ),
           Bubble(
             title: 'members'.tr(),
-            iconColor: Colors.white,
-            bubbleColor: Colors.indigo,
+            iconColor: colorScheme.onPrimary,
+            bubbleColor: colorScheme.primary,
             icon: Icons.group_rounded,
-            titleStyle: const TextStyle(fontSize: 16, color: Colors.white),
+            titleStyle: TextStyle(fontSize: 16, color: colorScheme.onPrimary),
             onPress: () async {
               _animationController.reverse();
 
@@ -876,10 +877,10 @@ class _CardListState extends State<CardList> with SingleTickerProviderStateMixin
           ),
           Bubble(
             title: 'stopwatch_controls.timer_create'.tr(),
-            iconColor: Colors.white,
-            bubbleColor: Colors.indigo,
+            iconColor: colorScheme.onPrimary,
+            bubbleColor: colorScheme.primary,
             icon: Icons.timer, // Changed the icon to represent starting the timer
-            titleStyle: const TextStyle(fontSize: 16, color: Colors.white),
+            titleStyle: TextStyle(fontSize: 16, color: colorScheme.onPrimary),
             onPress: () async {
               // Check if the stopwatch is null
               if (widget.card.stopwatchTotal == null && widget.card.stopwatchStartedAt == null) {
@@ -913,10 +914,10 @@ class _CardListState extends State<CardList> with SingleTickerProviderStateMixin
           ),
           Bubble(
             title: 'delete'.tr(),
-            iconColor: Colors.white,
-            bubbleColor: Colors.indigo,
+            iconColor: colorScheme.onPrimary,
+            bubbleColor: colorScheme.primary,
             icon: Icons.delete,
-            titleStyle: const TextStyle(fontSize: 16, color: Colors.white),
+            titleStyle: TextStyle(fontSize: 16, color: colorScheme.onPrimary),
             onPress: () {
               _showDeleteCardConfirmationDialog(context);
               _animationController.reverse();
@@ -927,9 +928,9 @@ class _CardListState extends State<CardList> with SingleTickerProviderStateMixin
         onPress: () => _animationController.isCompleted
             ? _animationController.reverse()
             : _animationController.forward(),
-        iconColor: Colors.white,
+        iconColor: colorScheme.onPrimary,
         iconData: Icons.menu_rounded,
-        backGroundColor: Colors.indigo,
+        backGroundColor: colorScheme.primary,
       ),
       body: SingleChildScrollView(
         child: Padding(

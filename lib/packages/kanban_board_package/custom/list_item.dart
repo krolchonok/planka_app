@@ -86,6 +86,9 @@ class _ItemState extends ConsumerState<Item> {
           return b!;
         },
         child: GestureDetector(
+          onTap: () {
+            prov.board.onItemTap?.call(widget.itemIndex, widget.listIndex);
+          },
           onLongPress: () {
             cardProv.onLongpressCard(
                 listIndex: widget.listIndex,

@@ -225,7 +225,12 @@ class _BoardListState extends ConsumerState<BoardList> {
           }
           return b!;
         },
-        child: Container(
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () {
+            prov.board.onListTap?.call(widget.index);
+          },
+          child: Container(
           padding: const EdgeInsets.only(left: 15, right: 15),
           margin: const EdgeInsets.only(right: 30, top: 20, bottom: 15),
           width: prov.board.lists[widget.index].width!,
@@ -302,6 +307,7 @@ class _BoardListState extends ConsumerState<BoardList> {
                     ///FOOTER
                     prov.board.lists[widget.index].footer ?? const SizedBox.shrink(),
                   ]),
+          ),
           ),
         ));
   }

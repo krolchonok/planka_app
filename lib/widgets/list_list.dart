@@ -56,6 +56,7 @@ class _ListListState extends State<ListList> {
   final ImagePicker _picker = ImagePicker();
 
   Map<String, Color> labelColors = {};
+  String? _activeListId;
 
   @override
   void initState() {
@@ -68,7 +69,19 @@ class _ListListState extends State<ListList> {
       _listNameControllers[list.id] = TextEditingController(text: list.name);
       _focusNodesListTitle[list.id] = FocusNode();
     }
+  }
 
+  @override
+  void didUpdateWidget(covariant ListList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.lists.isEmpty) {
+      _activeListId = null;
+      return;
+    }
+    final exists = widget.lists.any((list) => list.id == _activeListId);
+    if (!exists) {
+      _activeListId = null;
+    }
   }
 
   void _openFCardScreen(PlankaCard selectedCard) async {
@@ -169,7 +182,34 @@ class _ListListState extends State<ListList> {
         });
   }
 
+  void _markActiveList(String listId) {
+    if (_activeListId == listId) {
+      return;
+    }
+    setState(() {
+      _activeListId = listId;
+    });
+  }
+
+  PlankaList? _resolveTargetList() {
+    if (widget.lists.isEmpty) {
+      return null;
+    }
+    if (_activeListId != null) {
+      for (final list in widget.lists) {
+        if (list.id == _activeListId) {
+          return list;
+        }
+      }
+    }
+    if (widget.lists.length == 1) {
+      return widget.lists.first;
+    }
+    return null;
+  }
+
   void _showCreateCardDialog(PlankaList list) {
+    _markActiveList(list.id);
     final controller = TextEditingController();
     showDialog(
       context: context,
@@ -234,6 +274,7 @@ class _ListListState extends State<ListList> {
               return ListTile(
                 title: Text(list.name),
                 onTap: () {
+                  _markActiveList(list.id);
                   Navigator.of(sheetCtx).pop();
                   if (forAttachment) {
                     _showFileSelectionOptions(list);
@@ -261,16 +302,26 @@ class _ListListState extends State<ListList> {
                 leading: const Icon(Icons.note_add_rounded),
                 title: Text('create_card'.tr()),
                 onTap: () {
+                  final targetList = _resolveTargetList();
                   Navigator.of(sheetCtx).pop();
-                  _showListPicker(forAttachment: false);
+                  if (targetList != null) {
+                    _showCreateCardDialog(targetList);
+                  } else {
+                    _showListPicker(forAttachment: false);
+                  }
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.image_search_rounded),
                 title: Text('file_picker.from_file'.tr()),
                 onTap: () {
+                  final targetList = _resolveTargetList();
                   Navigator.of(sheetCtx).pop();
-                  _showListPicker(forAttachment: true);
+                  if (targetList != null) {
+                    _showFileSelectionOptions(targetList);
+                  } else {
+                    _showListPicker(forAttachment: true);
+                  }
                 },
               ),
             ],
@@ -298,6 +349,16 @@ class _ListListState extends State<ListList> {
               ///Reorder List
               onListReorder: (oldListIndex, newListIndex) {
                 _moveList(oldListIndex!, newListIndex!);
+              },
+              onItemTap: (itemIndex, listIndex) {
+                if (listIndex == null) return;
+                if (listIndex < 0 || listIndex >= widget.lists.length) return;
+                _markActiveList(widget.lists[listIndex].id);
+              },
+              onListTap: (listIndex) {
+                if (listIndex == null) return;
+                if (listIndex < 0 || listIndex >= widget.lists.length) return;
+                _markActiveList(widget.lists[listIndex].id);
               },
 
               onListCreate: (newName) {
@@ -368,6 +429,7 @@ class _ListListState extends State<ListList> {
           builder: (BuildContext context, StateSetter setState) {
             return GestureDetector(
               onTap: () {
+                _markActiveList(list.id);
                 // When tapping, switch to editing mode
                 setState(() {
                   isEditingTitle = true;
@@ -489,14 +551,14 @@ class _ListListState extends State<ListList> {
         footer: const SizedBox.shrink(),
         items: list.cards.map((card) {
           // Convert each card to a widget
-          return _buildCardWidget(context, card);
+          return _buildCardWidget(context, card, list.id);
         }).toList(),
       );
     }).toList();
   }
 
   // Build custom card widget for each PlankaCard
-  Widget _buildCardWidget(BuildContext context, PlankaCard card) {
+  Widget _buildCardWidget(BuildContext context, PlankaCard card, String listId) {
     final cardFuture = _cardFutures.putIfAbsent(card.id, () =>
         Provider.of<CardProvider>(context, listen: false).fetchCard(cardId: card.id, context: context),);
     final hasMeta = card.tasks.isNotEmpty ||
@@ -524,6 +586,7 @@ class _ListListState extends State<ListList> {
                 ),
               ),
               onTap: () {
+                _markActiveList(listId);
                 _openFCardScreen(card);
               },
             ),
@@ -535,6 +598,7 @@ class _ListListState extends State<ListList> {
               visualDensity: VisualDensity.compact,
               contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
               onTap: () {
+                _markActiveList(listId);
                 _openFCardScreen(card);
               },
 
