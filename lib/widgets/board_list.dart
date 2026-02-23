@@ -302,10 +302,22 @@ class BoardListState extends State<BoardList> {
             child: Text('cancel'.tr()),
           ),
           TextButton(
-            onPressed: () {
-              Provider.of<BoardProvider>(ctx, listen: false).deleteBoard(boardId, widget.currentProject.id, ctx);
-              Navigator.of(ctx).pop();
-              Navigator.of(ctx).pop();
+            onPressed: () async {
+              await Provider.of<BoardProvider>(ctx, listen: false)
+                  .deleteBoard(boardId, widget.currentProject.id, ctx);
+
+              // Close confirmation dialog.
+              if (Navigator.of(ctx).canPop()) {
+                Navigator.of(ctx).pop();
+              }
+              // Close "Edit board" dialog (parent context).
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+
+              if (widget.onRefresh != null) {
+                widget.onRefresh!();
+              }
             },
             child: Text('delete'.tr()),
           ),
