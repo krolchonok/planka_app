@@ -57,6 +57,7 @@ dependencies:
   flutter_launcher_icons: ^0.13.1
   easy_localization: ^3.0.7
   country_flags: ^3.0.0
+  dynamic_color: ^1.7.0
 
 dev_dependencies:
   flutter_test:
