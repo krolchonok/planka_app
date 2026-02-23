@@ -29,6 +29,8 @@ class BoardListState extends State<BoardList> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     if (widget.boards.isNotEmpty) {
       return Padding(
         padding: const EdgeInsets.only(left: 10, right: 10, top: 10),
@@ -48,14 +50,14 @@ class BoardListState extends State<BoardList> {
                 },
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
+                    color: colorScheme.primary,
                     borderRadius: BorderRadius.circular(8.0),
                   ),
-                  child: const Center(
+                  child: Center(
                     child: Icon(
                       Icons.add,
                       size: 50,
-                      color: Colors.black,
+                      color: colorScheme.onPrimary,
                     ),
                   ),
                 ),
@@ -80,7 +82,7 @@ class BoardListState extends State<BoardList> {
                 },
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.5),
+                    color: colorScheme.primary,
                     borderRadius: BorderRadius.circular(8.0),
                   ),
                   child: Padding(
@@ -94,7 +96,7 @@ class BoardListState extends State<BoardList> {
                           style: Theme.of(context)
                               .textTheme
                               .bodyLarge
-                              ?.copyWith(color: Colors.white),
+                              ?.copyWith(color: colorScheme.onPrimary),
                         ),
                         const SizedBox(height: 10),
                         // Users section with overflow handling
@@ -118,9 +120,9 @@ class BoardListState extends State<BoardList> {
                                 }).toList(),
                               ),
                               if (users.length > 3)
-                                const Text(
+                                Text(
                                   '  ...',
-                                  style: TextStyle(color: Colors.white),
+                                  style: TextStyle(color: colorScheme.onPrimary),
                                 ),
                             ],
                           ),
@@ -271,10 +273,10 @@ class BoardListState extends State<BoardList> {
                           _showDeleteConfirmationDialog(ctx, board.id);
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
+                          backgroundColor: Theme.of(ctx).colorScheme.error,
                         ),
                         child: Text('delete'.tr(),
-                            style: const TextStyle(color: Colors.white)),
+                            style: TextStyle(color: Theme.of(ctx).colorScheme.onError)),
                       ),
                       TextButton(
                         onPressed: () {

@@ -42,10 +42,8 @@ class ListList extends StatefulWidget {
 
 class _ListListState extends State<ListList> {
   final Map<String, TextEditingController> _listNameControllers = {};
-  final Map<String, TextEditingController> _listNewCardControllers = {};
   // Add FocusNode to control focus on the TextField
   final Map<String, FocusNode> _focusNodesListTitle = {};
-  final Map<String, FocusNode> _focusNodesListNewCard = {};
   final Map<String, Future<PlankaFullCard>> _cardFutures = {};
 
   // A simple in-memory cache to store data
@@ -71,10 +69,6 @@ class _ListListState extends State<ListList> {
       _focusNodesListTitle[list.id] = FocusNode();
     }
 
-    for (var list in widget.lists) {
-      _listNewCardControllers[list.id] = TextEditingController();
-      _focusNodesListNewCard[list.id] = FocusNode();
-    }
   }
 
   void _openFCardScreen(PlankaCard selectedCard) async {
@@ -138,64 +132,226 @@ class _ListListState extends State<ListList> {
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<ListProvider>(
-      builder: (context, listProvider, child) {
-        // The UI will rebuild when listProvider.lists changes
-        return KanbanBoard(
-          _generateBoardListsData(),
+  void _handleListMenuAction(PlankaList list, int value) {
+    if (value == 7) {
+      _showDeleteConfirmationDialog(context, list);
+    }
+    if (value == 5) {
+      final index = widget.lists.indexOf(list);
+      createListInBetween('new_list'.tr(), list.position, index, true);
+    }
+    if (value == 6) {
+      final index = widget.lists.indexOf(list);
+      createListInBetween('new_list'.tr(), list.position, index, false);
+    }
+  }
 
-          ///Reorder Card
-          onItemReorder: (oldCardIndex, newCardIndex, oldListIndex, newListIndex) {
-            _moveCard(oldListIndex!, newListIndex!, oldCardIndex!, newCardIndex!);
-          },
+  String _nextCardPosition(PlankaList list) {
+    if (list.cards.isEmpty) {
+      return "1000";
+    }
+    return (list.cards.last.position + 1000).toString();
+  }
 
-          ///Reorder List
-          onListReorder: (oldListIndex, newListIndex) {
-            _moveList(oldListIndex!, newListIndex!);
-          },
+  Future<void> _createCardInList(PlankaList list, String cardName) async {
+    await Provider.of<ListProvider>(context, listen: false)
+        .createCard(
+          newCardName: cardName,
+          listId: list.id,
+          context: context,
+          boardId: widget.currentBoard.id,
+          newPos: _nextCardPosition(list),
+        )
+        .then((_) {
+          if (widget.onRefresh != null) {
+            widget.onRefresh!();
+          }
+        });
+  }
 
-          onListCreate: (newName) {
-            if (newName != null && newName.isNotEmpty) {
-              if(widget.lists.isNotEmpty){
-                Provider.of<ListProvider>(context, listen: false).createList(
-                  newListName: newName,
-                  boardId: widget.currentBoard.id,
-                  context: context,
-                  newPos: (widget.lists.last.position + 1000).toString(),
-                ).then((_) {
-                  // Call the onRefresh callback if it exists
-                  if (widget.onRefresh != null) {
-                    widget.onRefresh!();
-                  }
-                });
-              } else {
-                Provider.of<ListProvider>(context, listen: false).createList(
-                  newListName: newName,
-                  boardId: widget.currentBoard.id,
-                  context: context,
-                  newPos: "1000",
-                ).then((_) {
-                  // Call the onRefresh callback if it exists
-                  if (widget.onRefresh != null) {
-                    widget.onRefresh!();
-                  }
-                });
-              }
-            } else {
-              showTopSnackBar(
-                Overlay.of(context),
-                CustomSnackBar.error(
-                  message: 'not_empty_name'.tr(),
-                ),
-              );
+  void _showCreateCardDialog(PlankaList list) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('create_card'.tr()),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          onSubmitted: (value) async {
+            final text = value.trim();
+            if (text.isEmpty) {
+              return;
+            }
+            await _createCardInList(list, text);
+            if (ctx.mounted) {
+              Navigator.of(ctx).pop();
             }
           },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text('cancel'.tr()),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final text = controller.text.trim();
+              if (text.isEmpty) {
+                return;
+              }
+              await _createCardInList(list, text);
+              if (ctx.mounted) {
+                Navigator.of(ctx).pop();
+              }
+            },
+            child: Text('create'.tr()),
+          ),
+        ],
+      ),
+    );
+  }
 
-          backgroundColor: Colors.transparent,
+  void _showListPicker({required bool forAttachment}) {
+    if (widget.lists.isEmpty) {
+      showTopSnackBar(
+        Overlay.of(context),
+        CustomSnackBar.info(message: 'no_boards'.tr()),
+      );
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetCtx) {
+        return SafeArea(
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: widget.lists.length,
+            itemBuilder: (ctx, index) {
+              final list = widget.lists[index];
+              return ListTile(
+                title: Text(list.name),
+                onTap: () {
+                  Navigator.of(sheetCtx).pop();
+                  if (forAttachment) {
+                    _showFileSelectionOptions(list);
+                  } else {
+                    _showCreateCardDialog(list);
+                  }
+                },
+              );
+            },
+          ),
         );
       },
+    );
+  }
+
+  void _showGlobalAddMenu() {
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetCtx) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.note_add_rounded),
+                title: Text('create_card'.tr()),
+                onTap: () {
+                  Navigator.of(sheetCtx).pop();
+                  _showListPicker(forAttachment: false);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.image_search_rounded),
+                title: Text('file_picker.from_file'.tr()),
+                onTap: () {
+                  Navigator.of(sheetCtx).pop();
+                  _showListPicker(forAttachment: true);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Consumer<ListProvider>(
+          builder: (context, listProvider, child) {
+            // The UI will rebuild when listProvider.lists changes
+            return KanbanBoard(
+              _generateBoardListsData(),
+
+              ///Reorder Card
+              onItemReorder: (oldCardIndex, newCardIndex, oldListIndex, newListIndex) {
+                _moveCard(oldListIndex!, newListIndex!, oldCardIndex!, newCardIndex!);
+              },
+
+              ///Reorder List
+              onListReorder: (oldListIndex, newListIndex) {
+                _moveList(oldListIndex!, newListIndex!);
+              },
+
+              onListCreate: (newName) {
+                if (newName != null && newName.isNotEmpty) {
+                  if(widget.lists.isNotEmpty){
+                    Provider.of<ListProvider>(context, listen: false).createList(
+                      newListName: newName,
+                      boardId: widget.currentBoard.id,
+                      context: context,
+                      newPos: (widget.lists.last.position + 1000).toString(),
+                    ).then((_) {
+                      // Call the onRefresh callback if it exists
+                      if (widget.onRefresh != null) {
+                        widget.onRefresh!();
+                      }
+                    });
+                  } else {
+                    Provider.of<ListProvider>(context, listen: false).createList(
+                      newListName: newName,
+                      boardId: widget.currentBoard.id,
+                      context: context,
+                      newPos: "1000",
+                    ).then((_) {
+                      // Call the onRefresh callback if it exists
+                      if (widget.onRefresh != null) {
+                        widget.onRefresh!();
+                      }
+                    });
+                  }
+                } else {
+                  showTopSnackBar(
+                    Overlay.of(context),
+                    CustomSnackBar.error(
+                      message: 'not_empty_name'.tr(),
+                    ),
+                  );
+                }
+              },
+
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+            );
+          },
+        ),
+        Positioned(
+          right: 16,
+          bottom: 16,
+          child: FloatingActionButton(
+            onPressed: _showGlobalAddMenu,
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            foregroundColor: Theme.of(context).colorScheme.onPrimary,
+            child: const Icon(Icons.add_rounded),
+          ),
+        ),
+      ],
     );
   }
 
@@ -204,7 +360,6 @@ class _ListListState extends State<ListList> {
     return widget.lists.map((list) {
       // Use a local boolean to track editing state
       bool isEditingTitle = false;
-      bool isEditingNewCardName = false;
 
       return BoardListsData(
         width: MediaQuery.of(context).size.width * 0.9,
@@ -253,7 +408,7 @@ class _ListListState extends State<ListList> {
                   )
                   : Container(
                 width: MediaQuery.of(context).size.width * 0.9,
-                color: Colors.grey[200],
+                color: Theme.of(context).colorScheme.surfaceContainerHigh,
                 padding: const EdgeInsets.only(left: 5, bottom: 5, top: 5, right: 0),
                 alignment: Alignment.centerLeft,
                 child: Row(
@@ -261,59 +416,69 @@ class _ListListState extends State<ListList> {
                   children: [
                     Text(
                       list.name,
-                      style: const TextStyle(fontSize: 17, color: Colors.black, fontWeight: FontWeight.w500),
-                    ),
-                    SizedBox(
-                      child: PopupMenuButton<int>(
-                        icon: const Icon(Icons.menu_rounded),
-                        onSelected: (value) async {
-
-                          ///Delete List (Confirmation Dialog)
-                          if(value == 7) {
-                            _showDeleteConfirmationDialog(context, list);
-                          }
-
-                          if (value == 5) {
-                            /// Create list to the left
-                            final index = widget.lists.indexOf(list);
-                            createListInBetween('new_list'.tr(), list.position, index, true);
-                          }
-                          if (value == 6) {
-                            /// Create list to the right
-                            final index = widget.lists.indexOf(list);
-                            createListInBetween('new_list'.tr(), list.position, index, false);
-                          }
-                        },
-                        itemBuilder: (BuildContext context) => <PopupMenuEntry<int>>[
-                          PopupMenuItem<int>(
-                            value: 2,
-                            child: Text('sort_after'.tr()),
-                          ),
-                          const PopupMenuDivider(),
-                          PopupMenuItem<int>(
-                            value: 3,
-                            child: Text('move_all_from_list'.tr()),
-                          ),
-                          PopupMenuItem<int>(
-                            value: 4,
-                            child: Text('archive_all_from_list'.tr()),
-                          ),
-                          const PopupMenuDivider(),
-                          PopupMenuItem<int>(
-                            value: 5,
-                            child: Text('create_list_left'.tr()),
-                          ),
-                          PopupMenuItem<int>(
-                            value: 6,
-                            child: Text('create_list_right'.tr()),
-                          ),
-                          const PopupMenuDivider(),
-                          PopupMenuItem<int>(
-                            value: 7,
-                            child: Text('delete_list'.tr()),
-                          ),
-                        ],
+                      style: TextStyle(
+                        fontSize: 17,
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontWeight: FontWeight.w500,
                       ),
+                    ),
+                    MenuAnchor(
+                      style: MenuStyle(
+                        backgroundColor: WidgetStatePropertyAll(
+                          Theme.of(context).colorScheme.surfaceContainerHigh,
+                        ),
+                        side: WidgetStatePropertyAll(
+                          BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                          ),
+                        ),
+                        shape: WidgetStatePropertyAll(
+                          RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                      menuChildren: [
+                        MenuItemButton(
+                          onPressed: () => _handleListMenuAction(list, 2),
+                          child: Text('sort_after'.tr()),
+                        ),
+                        const Divider(height: 1),
+                        MenuItemButton(
+                          onPressed: () => _handleListMenuAction(list, 3),
+                          child: Text('move_all_from_list'.tr()),
+                        ),
+                        MenuItemButton(
+                          onPressed: () => _handleListMenuAction(list, 4),
+                          child: Text('archive_all_from_list'.tr()),
+                        ),
+                        const Divider(height: 1),
+                        MenuItemButton(
+                          onPressed: () => _handleListMenuAction(list, 5),
+                          child: Text('create_list_left'.tr()),
+                        ),
+                        MenuItemButton(
+                          onPressed: () => _handleListMenuAction(list, 6),
+                          child: Text('create_list_right'.tr()),
+                        ),
+                        const Divider(height: 1),
+                        MenuItemButton(
+                          onPressed: () => _handleListMenuAction(list, 7),
+                          child: Text('delete_list'.tr()),
+                        ),
+                      ],
+                      builder: (BuildContext context, MenuController controller, Widget? child) {
+                        return IconButton.filledTonal(
+                          onPressed: () {
+                            if (controller.isOpen) {
+                              controller.close();
+                            } else {
+                              controller.open();
+                            }
+                          },
+                          icon: const Icon(Icons.menu_rounded),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -321,82 +486,7 @@ class _ListListState extends State<ListList> {
             );
           },
         ),
-        footer: StatefulBuilder(
-        builder: (BuildContext context, StateSetter setState) {
-          return Padding(
-            padding: const EdgeInsets.only(right: 5, left: 5, top: 5),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                GestureDetector(
-                  onTap: () {
-                    /// When tapping, switch to editing mode
-                    setState(() {
-                      isEditingNewCardName = true;
-                      /// Focus the TextField when editing mode is enabled
-                      _focusNodesListNewCard[list.id]!.requestFocus();
-                    });
-                  },
-
-                  child: isEditingNewCardName ? Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: SizedBox(
-                      width: MediaQuery.of(context).size.width * 0.7,
-                      child: TextField(
-                        controller: _listNewCardControllers[list.id],
-                        focusNode: _focusNodesListNewCard[list.id],
-                        autofocus: true,
-                        onSubmitted: (newName) {
-                          /// On submit, disable editing mode and fire onRenameList
-                          setState(() {
-                            isEditingNewCardName = false;
-                          });
-
-                          ///CREATE NEW CARD
-                          Provider.of<ListProvider>(context, listen: false).createCard(
-                            newCardName: _listNewCardControllers[list.id]!.text,
-                            listId: list.id,
-                            context: context,
-                            boardId: widget.currentBoard.id,
-                            newPos: list.cards.isNotEmpty
-                                ? (list.cards.last.position + 1000).toString()
-                                : "1000",
-                          ).then((_) {
-                            // Call the onRefresh callback if it exists
-                            if (widget.onRefresh != null) {
-                              widget.onRefresh!();
-                            }
-                          });
-
-                          _listNewCardControllers[list.id]!.clear();
-                        },
-                        onTapOutside: (newName) {
-                          // On submit, disable editing mode and fire onRenameList
-                          setState(() {
-                            isEditingNewCardName = false;
-                          });
-                        },
-                      ),
-                    ),
-                  ) :
-                  Text(
-                    'create_card'.tr(),
-                    style: const TextStyle(fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.indigo),
-                  ),
-                ),
-                if(isEditingNewCardName == false)
-                  IconButton(
-                    onPressed: () {
-                      _showFileSelectionOptions(list);
-                    },
-                    icon: const Icon(Icons.image_search_rounded),
-                  ),
-              ],
-            ),
-          );
-        }),
+        footer: const SizedBox.shrink(),
         items: list.cards.map((card) {
           // Convert each card to a widget
           return _buildCardWidget(context, card);
@@ -409,10 +499,17 @@ class _ListListState extends State<ListList> {
   Widget _buildCardWidget(BuildContext context, PlankaCard card) {
     final cardFuture = _cardFutures.putIfAbsent(card.id, () =>
         Provider.of<CardProvider>(context, listen: false).fetchCard(cardId: card.id, context: context),);
+    final hasMeta = card.tasks.isNotEmpty ||
+        (card.dueDate != null && card.dueDate!.isNotEmpty) ||
+        card.stopwatchTotal != null ||
+        card.stopwatchStartedAt != null ||
+        card.cardMemberships.isNotEmpty ||
+        card.description != null ||
+        (card.cardAttachment != null && card.cardAttachment.isNotEmpty);
 
     return Card(
       elevation: 3,
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.primary,
       key: ValueKey('card_${card.id}'),
       margin: const EdgeInsets.symmetric(vertical: 0.0),
       child: Column(
@@ -432,18 +529,20 @@ class _ListListState extends State<ListList> {
             ),
 
           ListTile(
+              titleAlignment: ListTileTitleAlignment.center,
+              dense: true,
+              minVerticalPadding: 2,
+              visualDensity: VisualDensity.compact,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
               onTap: () {
                 _openFCardScreen(card);
               },
 
               /// Labels and Card Name
               title: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  ///show padding if there is no attachment preview, otherwise no padding (looks good)
-                  if(card.coverAttachmentId == null)
-                    const SizedBox(height: 5,),
-
                   FutureBuilder<PlankaFullCard>(
                     future: cardFuture,
                     builder: (ctx, snapshot) {
@@ -459,19 +558,28 @@ class _ListListState extends State<ListList> {
                         return Wrap(
                           spacing: 1.0,
                           runSpacing: 1.0,
+                          alignment: WrapAlignment.center,
                           children: _buildLabelWidgets(card.labels, card2.cardLabels!, labelColors),
                         );
                       }
                     },
                   ),
 
-                  Text(card.name, style: const TextStyle(fontSize: 13),),
+                  Text(
+                    card.name,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                  ),
                 ],
               ),
 
               /// Due Date, Timer and Users
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              subtitle: hasMeta ? Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   if(card.tasks.isNotEmpty)
                     Padding(
@@ -546,7 +654,7 @@ class _ListListState extends State<ListList> {
                     ),
                   )
                 ],
-              )
+              ) : null
           ),
         ],
       ),
@@ -626,7 +734,7 @@ class _ListListState extends State<ListList> {
                 value: progress,
                 color: (completedTasks / totalTasks == 1)
                     ? Colors.green
-                    : Colors.indigo,
+                    : Theme.of(context).colorScheme.primary,
                 minHeight: 8,
                 borderRadius: const BorderRadius.all(Radius.circular(5)),
               ),
@@ -652,7 +760,7 @@ class _ListListState extends State<ListList> {
               value: progress,
               color: (completedTasks / totalTasks == 1)
                   ? Colors.green
-                  : Colors.indigo,
+                  : Theme.of(context).colorScheme.primary,
               minHeight: 8,
               borderRadius: const BorderRadius.all(Radius.circular(5)),
             ),
@@ -934,21 +1042,21 @@ class _ListListState extends State<ListList> {
                 leading: const Icon(Icons.photo_library),
                 title: Text('file_picker.from_gallery'.tr()),
                 onTap: () async {
-                  await pickImageFromGalleryAndAttach(context, list.id, widget.currentBoard.id, 'new_card'.tr(), (list.cards.last.position + 1000).toString());
+                  await pickImageFromGalleryAndAttach(context, list.id, widget.currentBoard.id, 'new_card'.tr(), _nextCardPosition(list));
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.camera_alt),
                 title: Text('file_picker.from_photo'.tr()),
                 onTap: () async {
-                  await takePhotoAndAttach(context, list.id, widget.currentBoard.id, 'new_card'.tr(), (list.cards.last.position + 1000).toString());
+                  await takePhotoAndAttach(context, list.id, widget.currentBoard.id, 'new_card'.tr(), _nextCardPosition(list));
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.attach_file),
                 title: Text('file_picker.from_file'.tr()),
                 onTap: () async {
-                  await pickFileAndAttach(context, list.id, widget.currentBoard.id, 'new_card'.tr(), (list.cards.last.position + 1000).toString());
+                  await pickFileAndAttach(context, list.id, widget.currentBoard.id, 'new_card'.tr(), _nextCardPosition(list));
                 },
               ),
             ],

@@ -49,9 +49,10 @@ class ProjectListState extends State<ProjectList> {
         itemCount: widget.projects.length + 1,
         itemBuilder: (ctx, index) {
           if (index == widget.projects.length) {
+            final colorScheme = Theme.of(context).colorScheme;
             return Card(
               margin: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
-              color: Colors.indigo,
+              color: colorScheme.primary,
               elevation: 4.0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(15.0),
@@ -60,9 +61,12 @@ class ProjectListState extends State<ProjectList> {
                 title: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.add, color: Colors.white),
+                    Icon(Icons.add, color: colorScheme.onPrimary),
                     const SizedBox(width: 8),
-                    Text('create_project'.tr(), style: const TextStyle(color: Colors.white)),
+                    Text(
+                      'create_project'.tr(),
+                      style: TextStyle(color: colorScheme.onPrimary),
+                    ),
                   ],
                 ),
                 onTap: () {
@@ -73,29 +77,29 @@ class ProjectListState extends State<ProjectList> {
           } else {
             final project = widget.projects[index];
             final users = project.users;
-            final backgroundImageUrl = project.backgroundImage?['url'];
+            final colorScheme = Theme.of(context).colorScheme;
+            final titleColor = colorScheme.onPrimary;
 
             return Card(
-              color: Colors.grey[700],
+              color: colorScheme.primary,
               margin: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
               elevation: 4.0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(15.0),
               ),
+              clipBehavior: Clip.antiAlias,
               child: Container(
                 decoration: BoxDecoration(
-                  image: backgroundImageUrl != null
-                      ? DecorationImage(
-                    image: NetworkImage(backgroundImageUrl),
-                    fit: BoxFit.cover,
-                  )
-                      : null,
+                  color: colorScheme.primary,
+                  border: Border.all(
+                    color: colorScheme.outlineVariant.withOpacity(0.6),
+                  ),
                   borderRadius: BorderRadius.circular(15.0),
                 ),
                 child: ListTile(
                   title: Text(
                     project.name,
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: titleColor),
                   ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -115,11 +119,11 @@ class ProjectListState extends State<ProjectList> {
                           );
                         }).toList(),
                       if (users.length > 3)
-                        const Padding(
+                        Padding(
                           padding: EdgeInsets.symmetric(horizontal: 2.0),
                           child: Text(
                             '...',
-                            style: TextStyle(color: Colors.white),
+                            style: TextStyle(color: titleColor),
                           ),
                         ),
                     ],

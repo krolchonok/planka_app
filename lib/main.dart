@@ -1,4 +1,6 @@
+import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:planka_app/providers/attachment_provider.dart';
 import 'package:planka_app/providers/card_actions_provider.dart';
@@ -18,6 +20,10 @@ import './screens/board_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setEnabledSystemUIMode(
+    SystemUiMode.manual,
+    overlays: SystemUiOverlay.values,
+  );
 
   /// Init localizations
   await EasyLocalization.ensureInitialized();
@@ -78,26 +84,44 @@ class MyApp extends StatelessWidget {
           update: (_, authProvider, cardActionsProvider) => CardActionsProvider(authProvider),
         ),
       ],
-      child: MaterialApp(
-        title: "Planka App",
-        theme: ThemeData(
-          primarySwatch: Colors.indigo,
-          textTheme: Theme.of(context).textTheme.apply(
-            fontSizeFactor: 0.8,
-            fontSizeDelta: 2.0,
-          ),
-        ),
-        localizationsDelegates: context.localizationDelegates,
-        supportedLocales: context.supportedLocales,
-        locale: context.locale,
-        home: const LoginScreen(),
-        routes: {
-          '/login': (ctx) => const LoginScreen(),
-          '/projects': (ctx) => const ProjectScreen(),
-          '/boards': (ctx) => BoardScreen(),
-          '/lists': (ctx) => ListScreen(),
-          '/card': (ctx) =>  FCardScreen(),
-          '/settings': (ctx) => const SettingsScreen()
+      child: DynamicColorBuilder(
+        builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
+          final ColorScheme lightScheme = lightDynamic ??
+              ColorScheme.fromSeed(
+                seedColor: Colors.indigo,
+                brightness: Brightness.light,
+              );
+          final ColorScheme darkScheme = darkDynamic ??
+              ColorScheme.fromSeed(
+                seedColor: Colors.indigo,
+                brightness: Brightness.dark,
+              );
+
+          return MaterialApp(
+            title: "Planka App",
+            debugShowCheckedModeBanner: false,
+            themeMode: ThemeMode.system,
+            theme: ThemeData(
+              useMaterial3: true,
+              colorScheme: lightScheme,
+            ),
+            darkTheme: ThemeData(
+              useMaterial3: true,
+              colorScheme: darkScheme,
+            ),
+            localizationsDelegates: context.localizationDelegates,
+            supportedLocales: context.supportedLocales,
+            locale: context.locale,
+            home: const LoginScreen(),
+            routes: {
+              '/login': (ctx) => const LoginScreen(),
+              '/projects': (ctx) => const ProjectScreen(),
+              '/boards': (ctx) => BoardScreen(),
+              '/lists': (ctx) => ListScreen(),
+              '/card': (ctx) => FCardScreen(),
+              '/settings': (ctx) => const SettingsScreen()
+            },
+          );
         },
       ),
     );

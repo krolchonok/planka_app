@@ -28,6 +28,7 @@ class _BoardScreenState extends State<BoardScreen> {
   @override
   Widget build(BuildContext context) {
     final backgroundImageUrl = widget.project?.backgroundImage?['url'];
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
@@ -39,9 +40,9 @@ class _BoardScreenState extends State<BoardScreen> {
             _fetchUsersForBoards(context);
           });
         },
-        foregroundColor: Colors.indigo,
-        backgroundColor: Colors.indigo,
-        child: const Icon(Icons.refresh_rounded, size: 35, color: Colors.white),
+        foregroundColor: colorScheme.onPrimary,
+        backgroundColor: colorScheme.primary,
+        child: Icon(Icons.refresh_rounded, size: 35, color: colorScheme.onPrimary),
       ),
       body: Container(
         decoration: backgroundImageUrl != null

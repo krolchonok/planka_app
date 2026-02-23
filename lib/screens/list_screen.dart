@@ -45,6 +45,7 @@ class _ListScreenState extends State<ListScreen> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     final backgroundImageUrl = widget.currentProject?.backgroundImage?['url'];
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
@@ -54,7 +55,11 @@ class _ListScreenState extends State<ListScreen> with SingleTickerProviderStateM
             Text('${'lists_for'.tr()} ${widget.currentBoard?.name}'),
             IconButton(
                 onPressed: _refreshLists,
-                icon: const Icon(Icons.refresh, color: Colors.indigo,)
+                style: IconButton.styleFrom(
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
+                ),
+                icon: Icon(Icons.refresh, color: colorScheme.onPrimary)
             )
           ],
         )

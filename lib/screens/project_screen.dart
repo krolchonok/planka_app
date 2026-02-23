@@ -42,6 +42,8 @@ class _ProjectScreenState extends State<ProjectScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
         appBar: AppBar(
           title: Text('app_name'.tr()),
@@ -79,10 +81,10 @@ class _ProjectScreenState extends State<ProjectScreen> with SingleTickerProvider
             // ),
             Bubble(
               title:'settings'.tr(),
-              iconColor :Colors.white,
-              bubbleColor : Colors.indigo,
+              iconColor : colorScheme.onPrimary,
+              bubbleColor : colorScheme.primary,
               icon:Icons.settings,
-              titleStyle: const TextStyle(fontSize: 16 , color: Colors.white),
+              titleStyle: TextStyle(fontSize: 16, color: colorScheme.onPrimary),
               onPress: () {
                 _animationController.reverse();
                 Navigator.push(
@@ -93,10 +95,10 @@ class _ProjectScreenState extends State<ProjectScreen> with SingleTickerProvider
             ),
             Bubble(
               title:"logout".tr(),
-              iconColor :Colors.white,
-              bubbleColor : Colors.indigo,
+              iconColor : colorScheme.onPrimary,
+              bubbleColor : colorScheme.primary,
               icon:Icons.logout_rounded,
-              titleStyle: const TextStyle(fontSize: 16 , color: Colors.white),
+              titleStyle: TextStyle(fontSize: 16, color: colorScheme.onPrimary),
               onPress: () {
                 _animationController.reverse();
                 _logout(context);
@@ -107,9 +109,9 @@ class _ProjectScreenState extends State<ProjectScreen> with SingleTickerProvider
           onPress: () => _animationController.isCompleted
               ? _animationController.reverse()
               : _animationController.forward(),
-          iconColor: Colors.white,
+          iconColor: colorScheme.onPrimary,
           iconData: Icons.menu_rounded,
-          backGroundColor: Colors.indigo,
+          backGroundColor: colorScheme.primary,
         ),
         body: FutureBuilder(
           future: Provider.of<ProjectProvider>(context, listen: false).fetchProjects(),

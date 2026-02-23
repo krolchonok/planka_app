@@ -24,6 +24,7 @@ class _ItemState extends ConsumerState<Item> {
   Widget build(BuildContext context) {
     var prov = ref.read(ProviderList.boardProvider.notifier);
     var cardProv = ref.read(ProviderList.cardProvider.notifier);
+    final colorScheme = Theme.of(context).colorScheme;
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       cardProv.calculateCardPositionSize(
@@ -100,11 +101,11 @@ class _ItemState extends ConsumerState<Item> {
               ? Container( ///placeholder when the card is still in the original position but being dragged
                   margin: const EdgeInsets.only(bottom: 10),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey, width: 2),
+                    border: Border.all(color: colorScheme.outline, width: 2),
                     borderRadius: BorderRadius.circular(15),
                     color: prov.board.lists[widget.listIndex]
                             .items[widget.itemIndex].backgroundColor ??
-                        Colors.white,
+                        colorScheme.surface,
                   ),
                   width: prov.draggedItemState!.width,
                   height: prov.draggedItemState!.height,

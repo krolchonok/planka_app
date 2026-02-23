@@ -22,6 +22,7 @@ class _BoardListState extends ConsumerState<BoardList> {
   Widget build(BuildContext context) {
     var prov = ref.read(ProviderList.boardProvider);
     var listProv = ref.read(ProviderList.boardListProvider);
+    final colorScheme = Theme.of(context).colorScheme;
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       listProv.calculateSizePosition(
           listIndex: widget.index,
@@ -66,9 +67,9 @@ class _BoardListState extends ConsumerState<BoardList> {
                 prov.board.lists[widget.index].items.add(ListItem(
                     child: Container(
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade200),
+                        border: Border.all(color: colorScheme.outlineVariant),
                         borderRadius: BorderRadius.circular(15),
-                        color: prov.board.cardPlaceholderColor ?? Colors.red,
+                        color: prov.board.cardPlaceholderColor ?? colorScheme.primaryContainer,
                       ),
                       margin: const EdgeInsets.only(top: 5),
                       width: prov.draggedItemState!.width,
@@ -150,9 +151,9 @@ class _BoardListState extends ConsumerState<BoardList> {
                 prov.board.lists[widget.index].items.add(ListItem(
                     child: Container(
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade200),
+                        border: Border.all(color: colorScheme.outlineVariant),
                         borderRadius: BorderRadius.circular(15),
-                        color: prov.board.cardPlaceholderColor ?? Colors.white,
+                        color: prov.board.cardPlaceholderColor ?? colorScheme.surface,
                       ),
                       margin: const EdgeInsets.only(top: 5),
                       width: prov.draggedItemState!.width,
@@ -229,8 +230,9 @@ class _BoardListState extends ConsumerState<BoardList> {
           margin: const EdgeInsets.only(right: 30, top: 20, bottom: 15),
           width: prov.board.lists[widget.index].width!,
           decoration: BoxDecoration(
-            color: Colors.grey[200], // Set the background color
+            color: colorScheme.surfaceContainerLow,
             borderRadius: BorderRadius.circular(8), ///round edges for whole list element
+            border: Border.all(color: colorScheme.outlineVariant),
           ),
           child: AnimatedSwitcher(
             transitionBuilder: (child, animation) =>
@@ -251,8 +253,8 @@ class _BoardListState extends ConsumerState<BoardList> {
                     ),
                     color: prov.board.lists.length - 1 == widget.index
                         ? prov.board.listPlaceholderColor ??
-                            Colors.white.withOpacity(0.8)
-                        : prov.board.listPlaceholderColor ?? Colors.transparent,
+                            colorScheme.surface.withOpacity(0.8)
+                        : prov.board.listPlaceholderColor ?? colorScheme.surface.withOpacity(0.1),
                     child: prov.board.lists.length - 1 == widget.index
                         ? prov.board.listPlaceholderColor != null
                             ? null

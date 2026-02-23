@@ -74,33 +74,33 @@ class _KanbanBoardState extends State<KanbanBoard> {
   @override
   Widget build(BuildContext context) {
     return ProviderScope(
-        child: MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Board(widget.list,
-          displacementX: widget.displacementX,
-          displacementY: widget.displacementY,
-          backgroundColor: widget.backgroundColor,
-          boardDecoration: widget.boardDecoration,
-          cardPlaceHolderColor: widget.cardPlaceHolderColor,
-          listPlaceHolderColor: widget.listPlaceHolderColor,
-          listDecoration: widget.listDecoration,
-          boardScrollConfig: widget.boardScrollConfig,
-          listScrollConfig: widget.listScrollConfig,
-          textStyle: widget.textStyle,
-          onItemTap: widget.onItemTap,
-          onItemLongPress: widget.onItemLongPress,
-          onListTap: widget.onListTap,
-          onListLongPress: widget.onListLongPress,
-          onItemReorder: widget.onItemReorder,
-          onListReorder: widget.onListReorder,
-          onListRename: widget.onListRename,
-          onListCreate: widget.onListCreate,
-          onNewCardInsert: widget.onNewCardInsert,
-          cardTransitionBuilder: widget.cardTransitionBuilder,
-          listTransitionBuilder: widget.listTransitionBuilder,
-          cardTransitionDuration: widget.cardTransitionDuration,
-          listTransitionDuration: widget.listTransitionDuration),
-    ));
+      child: Board(
+        widget.list,
+        displacementX: widget.displacementX,
+        displacementY: widget.displacementY,
+        backgroundColor: widget.backgroundColor,
+        boardDecoration: widget.boardDecoration,
+        cardPlaceHolderColor: widget.cardPlaceHolderColor,
+        listPlaceHolderColor: widget.listPlaceHolderColor,
+        listDecoration: widget.listDecoration,
+        boardScrollConfig: widget.boardScrollConfig,
+        listScrollConfig: widget.listScrollConfig,
+        textStyle: widget.textStyle,
+        onItemTap: widget.onItemTap,
+        onItemLongPress: widget.onItemLongPress,
+        onListTap: widget.onListTap,
+        onListLongPress: widget.onListLongPress,
+        onItemReorder: widget.onItemReorder,
+        onListReorder: widget.onListReorder,
+        onListRename: widget.onListRename,
+        onListCreate: widget.onListCreate,
+        onNewCardInsert: widget.onNewCardInsert,
+        cardTransitionBuilder: widget.cardTransitionBuilder,
+        listTransitionBuilder: widget.listTransitionBuilder,
+        cardTransitionDuration: widget.cardTransitionDuration,
+        listTransitionDuration: widget.listTransitionDuration,
+      ),
+    );
   }
 }
 
@@ -247,6 +247,7 @@ class _BoardState extends ConsumerState<Board> {
   Widget build(BuildContext context) {
     var boardProv = ref.read(ProviderList.boardProvider);
     var boardListProv = ref.read(ProviderList.boardListProvider);
+    final colorScheme = Theme.of(context).colorScheme;
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       boardProv.board.setstate = () => setState(() {});
       var box = context.findRenderObject() as RenderBox;
@@ -339,7 +340,11 @@ class _BoardState extends ConsumerState<Board> {
                                     margin: const EdgeInsets.only(top: 20, right: 30),
                                     padding: const EdgeInsets.only(bottom: 20),
                                     width: MediaQuery.of(context).size.width * 0.9,
-                                    color: const Color.fromARGB(255, 247, 248, 252),
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.surfaceContainerHigh,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: colorScheme.outlineVariant),
+                                    ),
                                     child: Wrap(
                                       children: [
                                         SizedBox(
@@ -375,7 +380,7 @@ class _BoardState extends ConsumerState<Board> {
                                         ),
                                         Container(
                                           width: 300,
-                                          color: Colors.white,
+                                          color: colorScheme.surface,
                                           margin: const EdgeInsets.only(top: 20, right: 10, left: 10),
                                           child: const TField(), // Replace TField with your text field implementation
                                         ),
@@ -395,13 +400,15 @@ class _BoardState extends ConsumerState<Board> {
                                       width: MediaQuery.of(context).size.width * 0.9,
                                       margin: const EdgeInsets.only(top: 20, right: 20),
                                       decoration: BoxDecoration(
-                                        color: const Color.fromARGB(255, 247, 248, 252),
-                                        borderRadius: BorderRadius.circular(6),
+                                        color: colorScheme.primaryContainer,
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(color: colorScheme.outlineVariant),
                                       ),
                                       child: Center(
                                         child: Text(
                                           'create_list'.tr(),
-                                          style: widget.textStyle,
+                                          style: (widget.textStyle ?? Theme.of(context).textTheme.titleMedium)
+                                              ?.copyWith(color: colorScheme.onPrimaryContainer),
                                         ),
                                       ),
                                     ),

@@ -182,10 +182,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 icon: const Icon(Icons.keyboard_arrow_down),
                 iconSize: 24,
                 elevation: 16,
-                style: const TextStyle(color: Colors.black),
+                style: Theme.of(context).textTheme.bodyLarge,
+                iconEnabledColor: Theme.of(context).colorScheme.onSurfaceVariant,
                 underline: Container(
-                  height: 2,
-                  color: Colors.indigo,
+                  height: 1,
+                  color: Theme.of(context).colorScheme.outlineVariant,
                 ),
                 onChanged: (String? newProtocol) {
                   setState(() {
@@ -207,10 +208,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 icon: const Icon(Icons.keyboard_arrow_down),
                 iconSize: 24,
                 elevation: 16,
-                style: const TextStyle(color: Colors.black),
+                style: Theme.of(context).textTheme.bodyLarge,
+                iconEnabledColor: Theme.of(context).colorScheme.onSurfaceVariant,
                 underline: Container(
-                  height: 2,
-                  color: Colors.indigo,
+                  height: 1,
+                  color: Theme.of(context).colorScheme.outlineVariant,
                 ),
                 onChanged: (String? newValue) {
                   setState(() {
@@ -245,10 +247,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 }).toList(),
               ),
 
-              const SizedBox(height: 10),
-              ElevatedButton(
-                onPressed: _login,
-                child: Text('login'.tr()),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _login,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: Text('login'.tr()),
+                ),
               ),
             ],
           ),
